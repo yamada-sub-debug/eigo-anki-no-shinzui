@@ -239,9 +239,12 @@
       <!-- 7つのボタン（ホーム＋教科） -->
       <nav class="tray" id="subjectTray" aria-label="科目ナビゲーション">
         <button class="pill" data-key="home" data-active="true">ホーム</button>
-        <button class="pill" data-key="英単語">英単語</button>
-        <button class="pill" data-key="英熟語">英熟語</button>
-        <button class="pill" data-key="英文法">英文法</button>
+        <button class="pill" data-key="英単語-英">英単語-英</button>
+        <button class="pill" data-key="英熟語-英">英熟語-英</button>
+        <button class="pill" data-key="英文法-英">英文法-英</button>
+        <button class="pill" data-key="英単語-日">英単語-日</button>
+        <button class="pill" data-key="英熟語-日">英熟語-日</button>
+        <button class="pill" data-key="英文法-日">英文法-日</button>
       </nav>
     </div>
   </header>
@@ -330,11 +333,15 @@
     });
 
     function getItems() {
-      // ▼ 追加：pool があるときは pool を優先（「ミスだけ復習」用）
       if (Array.isArray(state.pool) && state.pool.length) return state.pool;
 
-      let items = state.subject === 'home' ? DATA : DATA.filter(x => x.教材 === state.subject);
-      if (state.subject !== 'home' && state.unit) {
+      // ← 末尾の「-英 / -日」を剥がして基底科目名に
+      const subjectBase = (state.subject === 'home')
+        ? 'home'
+        : String(state.subject).replace(/-(英|日)$/, '');
+
+      let items = subjectBase === 'home' ? DATA : DATA.filter(x => x.教材 === subjectBase);
+      if (subjectBase !== 'home' && state.unit) {
         items = items.filter(x => String(x.単元) === String(state.unit));
       }
       return items;
@@ -487,14 +494,26 @@
       if (!items.length) return null;
       const idx = state.order[state.index] ?? 0;
       const row = items[idx];
-      const fields = row?.fields || {};
-      const q = String(fields.main ?? '').trim();
-      const answers = Object.keys(fields)
-        .filter(k => k !== 'main')
-        .map(k => String(fields[k] ?? '').trim())
-        .filter(Boolean);
+      const f = row?.fields || {};
+
+      const isJtoE = /-日$/.test(String(state.subject)); // 「-日」= 日→英
+
+      let q = '';
+      let answers = [];
+
+      if (isJtoE) {
+        // 日→英：出題=日本語（field1 なければ field2）、答え=英語（main）
+        q = String((f.field1 ?? f.field2) ?? '').trim();
+        answers = [String(f.main ?? '').trim()].filter(Boolean);
+      } else {
+        // 英→日（従来）：出題=英語（main）、答え=日本語（field1/field2）
+        q = String(f.main ?? '').trim();
+        answers = [f.field1, f.field2].map(v => String(v ?? '').trim()).filter(Boolean);
+      }
+
       return { row, q, answers };
     }
+
 
     function mark(isCorrect) {
       if (isCorrect) {
@@ -617,7 +636,10 @@
     }
 
     function renderUnitList() {
-      const items = state.subject === 'home' ? [] : DATA.filter(x => x.教材 === state.subject);
+      // ここで基底科目名にそろえる（英単語-英 → 英単語）
+      // 「-英」「-日」を除いた基底名でフィルタ
+      const subjectBase = String(state.subject).replace(/-(英|日)$/, '');
+      const items = state.subject === 'home' ? [] : DATA.filter(x => x.教材 === subjectBase);
       if (!items.length) {
         stage.innerHTML = `
           <div class="empty">
@@ -626,6 +648,7 @@
           </div>`;
         return;
       }
+  // （以下は既存のまま続行）
 
       // 単元ごと集計
       const unitMap = new Map();
@@ -664,23 +687,30 @@
       });
     }
 
-    // 教科ごとのラベル設定
+    // 方向込みの答えラベル
     function getLabelsForSubject(subject) {
-      switch (subject) {
-        case '英単語': return ['日本語'];
-        case '英熟語': return ['日本語'];
-        case '英文法': return ['日本語'];
-        // ほか必要に応じて追加
-        default: return ['答え'];
+      const isJtoE = /-日$/.test(String(subject));
+      if (isJtoE) return ['英語'];     // 日→英のとき
+      // それ以外（-英 ふくむ）は従来どおり
+      switch (String(subject).replace(/-(英|日)$/,'')) {
+        case '英単語':
+        case '英熟語':
+        case '英文法':
+          return ['日本語'];
+        default:
+          return ['答え'];
       }
     }
 
+    // 答えの値（1行ぶん）：-英=field1, -日=main
     function getAnswerPairs(row) {
-      const label = getLabelsForSubject(state.subject)[0]; // ← 科目ごとのラベルを取得
-      const a1 = String(row?.fields?.field1 ?? '').trim();
-      return a1 ? [[label, a1]] : [];
+      const isJtoE = /-日$/.test(String(state.subject));
+      const label = getLabelsForSubject(state.subject)[0];
+      const f = row?.fields || {};
+      const val = isJtoE ? String(f.main ?? '').trim()
+                        : String(f.field1 ?? '').trim();
+      return val ? [[label, val]] : [];
     }
-
 
 
     function render() {
@@ -811,7 +841,8 @@
 
     // 単元内の問題数
     function unitCount(subject, unit) {
-      return DATA.filter(x => x.教材 === subject && String(x.単元) === String(unit)).length;
+      const base = String(subject).replace(/-(英|日)$/, '');
+      return DATA.filter(x => x.教材 === base && String(x.単元) === String(unit)).length;
     }
 
     // 単元カードHTML（一覧と同じ見た目）
