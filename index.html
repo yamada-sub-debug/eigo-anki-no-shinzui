@@ -202,10 +202,20 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
+
     #settings-btn:hover {
       opacity: 0.8;
     }
 
+    #addUnit {
+      display: none;
+    }
+    
+    @media (min-width: 768px) {
+      #addUnit {
+        display: inline-flex;
+      }
+    }
 
   </style>
 </head>
@@ -622,7 +632,7 @@
               <h2 style="margin:0; font-size:20px;">${escapeHtml(state.subject)}</h2>
             </div>
             <div style="display:flex; gap:8px;">
-              <button class="pill" id="addUnit">単元追加</button>
+              <button class="pill" id="addUnit">＋</button>
               <button class="pill" id="startAll">すべての単元</button>
             </div>
           </div>
@@ -735,7 +745,7 @@
           <div style="width:100%; max-width:720px; margin:auto; display:grid; gap:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
               <h2 style="margin:0; font-size:20px;">単元追加（${escapeHtml(subject)}）</h2>
-              <button class="pill" id="backUnits">戻る</button>
+              <button class="pill" id="backUnits">↶</button>
             </div>
     
             <div style="border:1px solid var(--stroke); background:var(--card);
@@ -897,11 +907,11 @@
         <div style="width:100%; max-width:720px; margin:auto; display:grid; gap:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
             <h2 style="margin:0; font-size:20px;">
-              ${escapeHtml(subject)} / ${escapeHtml(unit)} - 一覧
+              ${escapeHtml(subject)} / ${escapeHtml(unit)} 一覧
             </h2>
             <div style="display:flex; gap:8px;">
-              <button class="pill" id="addProblem">追加</button>
-              <button class="pill" id="backUnits">戻る</button>
+              <button class="pill" id="addProblem">＋</button>
+              <button class="pill" id="backUnits">↶</button>
             </div>
           </div>
       
@@ -976,7 +986,7 @@
         <div style="width:100%; max-width:720px; margin:auto; display:grid; gap:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
             <h2 style="margin:0; font-size:20px;">${isNew ? '新規作成' : '編集'}</h2>
-            <button class="pill" id="backList">戻る</button>
+            <button class="pill" id="backList">↶</button>
           </div>
     
           <div style="border:1px solid var(--stroke); background:var(--card);
@@ -1234,7 +1244,7 @@
         <div style="width:100%; max-width:720px; margin:auto; display:grid; gap:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
             <h2 style="margin:0; font-size:20px;">設定</h2>
-            <button class="pill" id="backMain">戻る</button>
+            <button class="pill" id="backMain">↶</button>
           </div>
     
           <div style="border:1px solid var(--stroke); background:var(--card); border-radius:16px; padding:14px;">
@@ -1376,7 +1386,7 @@
               class="pill"
               style="padding:0 14px;"
               data-unit-list="${escapeAttr(unit)}">
-              📒
+              📋
             </button>
             <button
               class="pill"
@@ -1384,7 +1394,7 @@
               data-judge="start"
               data-due-start="${escapeAttr(id)}"
               data-unit-card="${escapeAttr(unit)}">
-              出題
+              🖊️
             </button>
           </div>`
         : `
@@ -1393,7 +1403,7 @@
             data-judge="start"
             data-due-start="${escapeAttr(id)}"
             data-unit-card="${escapeAttr(unit)}">
-            出題
+            🖊️
           </button>`;
     
       return `
