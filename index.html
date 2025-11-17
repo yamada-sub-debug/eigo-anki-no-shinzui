@@ -600,30 +600,32 @@
 
     function renderUnitList() {
       const subjectBase = String(state.subject).replace(/-(英|日)$/, '');
-      const items = state.subject === 'home' ? [] : DATA.filter(x => x.教材 === subjectBase);
-      if (!items.length) {
-        stage.innerHTML = `
-          <div class="empty">
-            <h2>${escapeHtml(state.subject)}</h2>
-            <p>この科目のデータが見つかりません。</p>
-          </div>`;
-        return;
-      }
+      const items = state.subject === 'home'
+        ? []
+        : DATA.filter(x => x.教材 === subjectBase);
     
       const unitMap = new Map();
       for (const it of items) {
         const key = String(it.単元);
         unitMap.set(key, (unitMap.get(key) || 0) + 1);
       }
-      const units = Array.from(unitMap.entries()).sort((a,b)=> a[0].localeCompare(b[0], 'ja'));
+      const units = Array.from(unitMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0], 'ja'));
     
+      const hasUnits = units.length > 0;
       const srs = lsLoad();
     
-      const listHtml = units.map(([u, c]) => {
-        const id = unitId(state.subject, u);
-        const rec = srs[id];
-        return unitCardHTML(state.subject, u, c, rec, false, true);
-      }).join('');
+      const listHtml = hasUnits
+        ? units.map(([u, c]) => {
+            const id  = unitId(state.subject, u);
+            const rec = srs[id];
+            return unitCardHTML(state.subject, u, c, rec, false, true);
+          }).join('')
+        : `
+          <div class="empty" style="padding:16px 0;">
+            <p>この科目のデータが見つかりません。</p>
+          </div>
+        `;
     
       stage.innerHTML = `
         <div style="width:100%; max-width:720px; display:grid; gap:12px;">
@@ -633,39 +635,42 @@
             </div>
             <div style="display:flex; gap:8px;">
               <button class="pill" id="addUnit">＋</button>
-              <button class="pill" id="startAll">すべての単元</button>
+              ${hasUnits ? `<button class="pill" id="startAll">すべての単元</button>` : ``}
             </div>
           </div>
           ${listHtml}
-        </div>`;
-    
-      document.getElementById('startAll').addEventListener('click', () => {
-        state.unit = null;
-        startQuiz();
-      });
+        </div>
+      `;
     
       document.getElementById('addUnit').addEventListener('click', () => {
         renderUnitCreator(state.subject);
       });
-
-      stage.querySelectorAll('button[data-due-start]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-due-start'); // subject|||unit
-          const [subject, unit] = id.split('|||');
-      
-          state.subject = subject;
-          state.unit = unit === 'ALL' ? null : unit;
-          state.mode = 'idle';       // 念のためリセット
-          startQuiz(state.unit);     // その単元で出題開始
-        });
-      });
     
-      stage.querySelectorAll('button[data-unit-list]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const unit = btn.getAttribute('data-unit-list');
-          renderProblemList(state.subject, unit);
+      if (hasUnits) {
+        document.getElementById('startAll').addEventListener('click', () => {
+          state.unit = null;
+          startQuiz();
         });
-      });
+    
+        stage.querySelectorAll('button[data-due-start]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-due-start');
+            const [subject, unit] = id.split('|||');
+    
+            state.subject = subject;
+            state.unit = unit === 'ALL' ? null : unit;
+            state.mode = 'idle';
+            startQuiz(state.unit);
+          });
+        });
+    
+        stage.querySelectorAll('button[data-unit-list]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const unit = btn.getAttribute('data-unit-list');
+            renderProblemList(state.subject, unit);
+          });
+        });
+      }
     }
 
     function renderUnitCreator(subject) {
