@@ -396,7 +396,7 @@
       render();
     }
 
-    const SKEY = '${APP_NS}_srs_v1';
+    const SKEY = `${APP_NS}_srs_v1`;
 
     function lsLoad() {
       try { return JSON.parse(localStorage.getItem(SKEY) || '{}'); }
@@ -636,6 +636,18 @@
     
       document.getElementById('addUnit').addEventListener('click', () => {
         renderUnitCreator(state.subject);
+      });
+
+      stage.querySelectorAll('button[data-due-start]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-due-start'); // subject|||unit
+          const [subject, unit] = id.split('|||');
+      
+          state.subject = subject;
+          state.unit = unit === 'ALL' ? null : unit;
+          state.mode = 'idle';       // 念のためリセット
+          startQuiz(state.unit);     // その単元で出題開始
+        });
       });
     
       stage.querySelectorAll('button[data-unit-list]').forEach(btn => {
