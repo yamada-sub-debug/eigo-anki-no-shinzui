@@ -120,7 +120,7 @@
     }
 
     .stage {
-      border: 1px dashed var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--radius-xl);
       background: rgba(255,255,255,.02);
       min-height: calc(100dvh - 160px);
@@ -233,7 +233,7 @@
       </div>
 
       <nav class="tray" id="subjectTray" aria-label="科目ナビゲーション">
-        <button class="pill" data-key="home" data-active="true">ホーム</button>
+        <button class="pill" data-key="home" data-active="true">🏠</button>
         <button class="pill" data-key="英単語-英">英単語-英</button>
         <button class="pill" data-key="英単語-日">英単語-日</button>
         <button class="pill" data-key="英熟語-英">英熟語-英</button>
@@ -635,7 +635,6 @@
             </div>
             <div style="display:flex; gap:8px;">
               <button class="pill" id="addUnit">＋</button>
-              ${hasUnits ? `<button class="pill" id="startAll">すべての単元</button>` : ``}
             </div>
           </div>
           ${listHtml}
@@ -645,25 +644,20 @@
       document.getElementById('addUnit').addEventListener('click', () => {
         renderUnitCreator(state.subject);
       });
-    
+
       if (hasUnits) {
-        document.getElementById('startAll').addEventListener('click', () => {
-          state.unit = null;
-          startQuiz();
-        });
-    
         stage.querySelectorAll('button[data-due-start]').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-due-start');
             const [subject, unit] = id.split('|||');
-    
+
             state.subject = subject;
             state.unit = unit === 'ALL' ? null : unit;
             state.mode = 'idle';
             startQuiz(state.unit);
           });
         });
-    
+
         stage.querySelectorAll('button[data-unit-list]').forEach(btn => {
           btn.addEventListener('click', () => {
             const unit = btn.getAttribute('data-unit-list');
@@ -1242,6 +1236,20 @@
       document.getElementById('ng')?.addEventListener('click', () => mark(false));
     }
 
+    function makeExportFilename() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+
+      const y = d.getFullYear();
+      const m = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const h = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      const s = pad(d.getSeconds());
+
+      return `export-${y}-${m}-${day}_${h}-${min}-${s}.json`;
+    }
+
     function renderSettings() {
       const srsCount = Object.keys(lsLoad() || {}).length;
     
@@ -1306,7 +1314,8 @@
         const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'cards-export.json';
+        a.href = url;
+        a.download = makeExportFilename();
         a.click();
         URL.revokeObjectURL(url);
       });
@@ -1320,7 +1329,7 @@
       });
     
       document.getElementById('resetSrsLive')?.addEventListener('click', () => {
-        if (!confirm('このアプリの学習履歴（SRS）をリセットしますか？')) return;
+        if (!confirm('学習履歴をリセットしますか？')) return;
         localStorage.removeItem(SKEY);
         alert('学習履歴をリセットしました。');
         render();
@@ -1459,15 +1468,8 @@
 
   const RELEASE_NOTES = [
   {
-    version: 'ver0.1.1',
-    date: '2025-11-15',
-    items: [
-    '軽微な修正'
-    ]
-  },
-  {
     version: 'ver0.1.0',
-    date: '2025-11-10',
+    date: '2025-11-29',
     items: [
     'β版リリース'
     ]
@@ -1619,13 +1621,28 @@
   async function importJsonFiles(fileList) {
     const files = Array.from(fileList || []);
     if (!files.length) return null;
-  
+
     const existing = await idbGetAll();
     const maxId = existing.length
       ? Math.max(...existing.map(r => Number(r.id) || 0))
       : 0;
-  
-    let merged = [];
+
+    const makeKey = (row) => {
+      const subj = String(row?.教材 ?? '').trim();
+      const unit = String(row?.単元 ?? '').trim();
+      const main = String(row?.fields?.main ?? '').trim();
+      if (!subj || !unit || !main) return '';
+      return `${subj}|||${unit}|||${main}`;
+    };
+
+    const seen = new Set(
+      existing
+        .map(makeKey)
+        .filter(k => k)
+    );
+
+    const merged = [];
+
     for (const file of files) {
       const text = await file.text();
       let arr;
@@ -1637,19 +1654,33 @@
       if (!Array.isArray(arr)) {
         throw new Error(`${file.name}: JSONは配列である必要があります`);
       }
-      merged = merged.concat(arr);
+
+      for (const row of arr) {
+        const key = makeKey(row);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        merged.push(row);
+      }
     }
-  
+
+    if (!merged.length) {
+      return {
+        files: files.length,
+        imported: 0,
+        total: existing.length,
+      };
+    }
+
     const normalized = merged.map((row, idx) => ({
       ...row,
-      id: maxId + idx + 1
+      id: maxId + idx + 1,
     }));
-  
+
     await idbBulkPut(normalized);
-  
+
     const all = await idbGetAll();
     DATA = all;
-  
+
     return {
       files: files.length,
       imported: normalized.length,
@@ -1699,7 +1730,8 @@
     const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'cards-export.json';
+    a.href = url;
+    a.download = makeExportFilename();
     a.click();
     URL.revokeObjectURL(url);
   });
