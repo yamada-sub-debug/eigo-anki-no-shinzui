@@ -355,6 +355,39 @@
       return arr;
     }
 
+    function naturalCompare(a, b) {
+      const ax = [];
+      const bx = [];
+
+      a.replace(/(\d+)|(\D+)/g, (_, $1, $2) => {
+        ax.push([$1 || "", $2 || ""]);
+      });
+      b.replace(/(\d+)|(\D+)/g, (_, $1, $2) => {
+        bx.push([$1 || "", $2 || ""]);
+      });
+
+      while (ax.length && bx.length) {
+        const an = ax.shift();
+        const bn = bx.shift();
+
+        const numA = parseInt(an[0], 10);
+        const numB = parseInt(bn[0], 10);
+        const aIsNum = !isNaN(numA);
+        const bIsNum = !isNaN(numB);
+
+        // 数字 vs 数字
+        if (aIsNum && bIsNum) {
+          if (numA !== numB) return numA - numB;
+        } else {
+          // 文字 vs 文字
+          const c = an[1].localeCompare(bn[1], 'ja');
+          if (c !== 0) return c;
+        }
+      }
+
+      return ax.length - bx.length;
+    }
+
     function startQuiz(unitKey = null) {
       if (unitKey !== null) state.unit = unitKey;
 
@@ -610,7 +643,7 @@
         unitMap.set(key, (unitMap.get(key) || 0) + 1);
       }
       const units = Array.from(unitMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0], 'ja'));
+        .sort((a, b) => naturalCompare(a[0], b[0]));
     
       const hasUnits = units.length > 0;
       const srs = lsLoad();
