@@ -228,8 +228,6 @@
           <h1>英語暗記の神髄</h1>
         </div>
       <button id="settings-btn" aria-label="設定">🛠️</button>
-
-
       </div>
 
       <nav class="tray" id="subjectTray" aria-label="科目ナビゲーション">
@@ -375,11 +373,9 @@
         const aIsNum = !isNaN(numA);
         const bIsNum = !isNaN(numB);
 
-        // 数字 vs 数字
         if (aIsNum && bIsNum) {
           if (numA !== numB) return numA - numB;
         } else {
-          // 文字 vs 文字
           const c = an[1].localeCompare(bn[1], 'ja');
           if (c !== 0) return c;
         }
@@ -1280,7 +1276,7 @@
       const min = pad(d.getMinutes());
       const s = pad(d.getSeconds());
 
-      return `export-${y}-${m}-${day}_${h}-${min}-${s}.json`;
+      return `eigo-export-${y}-${m}-${day}_${h}-${min}-${s}.json`;
     }
 
     function renderSettings() {
